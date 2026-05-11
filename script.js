@@ -2,10 +2,10 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/fireba
 import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
 // ==========================================
-// ⚙️ إعدادات المشروع بالكامل (CONFIG)
+// ⚙️ إعدادات المشروع (مفتاح ImgBB الخاص بك مدمج)
 // ==========================================
 const CONFIG = {
-    IMGBB_API_KEY: "", // 🔴 ضع مفتاح ImgBB الخاص بك هنا بين علامتي التنصيص
+    IMGBB_API_KEY: "872edef7066f0226f009e515daa0f951", // مفتاح الرفع الذي طلبته
     FIREBASE_CONFIG: {
         apiKey: "AIzaSyD5AhcV4dky3MdBizPdrCkNHMb9_NF9Yko",
         authDomain: "lkhf-5a292.firebaseapp.com",
@@ -22,7 +22,6 @@ const CONFIG = {
 const app = initializeApp(CONFIG.FIREBASE_CONFIG);
 const db = getFirestore(app);
 
-// التنقل بين التبويبات
 window.switchTab = function(tabId, element) {
     document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
     document.querySelectorAll('.menu-item').forEach(item => item.classList.remove('active'));
@@ -30,9 +29,6 @@ window.switchTab = function(tabId, element) {
     element.classList.add('active');
 };
 
-// ==========================================
-// 🖼️ نظام ضغط ومعاينة الصورة (Canvas)
-// ==========================================
 document.getElementById('p-image').addEventListener('change', function(event) {
     const file = event.target.files[0];
     const previewContainer = document.getElementById('preview-container');
@@ -50,7 +46,6 @@ document.getElementById('p-image').addEventListener('change', function(event) {
     }
 });
 
-// دالة الضغط (تقليل الحجم إلى أقصى عرض 800px، وجودة 0.7)
 const compressImage = async (file) => {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -73,7 +68,6 @@ const compressImage = async (file) => {
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, width, height);
                 
-                // استخراج الصورة المضغوطة 
                 canvas.toBlob((blob) => {
                     if (blob) resolve(blob);
                     else reject(new Error("فشل ضغط الصورة."));
@@ -86,21 +80,17 @@ const compressImage = async (file) => {
     });
 };
 
-// ==========================================
-// ☁️ الرفع لـ ImgBB والحفظ في Firebase
-// ==========================================
 function setStatus(msg, type = 'info') {
     const div = document.getElementById('upload-status');
     div.style.display = 'block';
     div.innerHTML = msg;
-    if(type === 'info') { div.style.background = '#fffbeb'; div.style.color = '#d97706'; }
-    if(type === 'success') { div.style.background = '#ecfdf5'; div.style.color = '#059669'; }
-    if(type === 'error') { div.style.background = '#fef2f2'; div.style.color = '#dc2626'; }
+    if(type === 'info') { div.style.background = '#e0f2fe'; div.style.color = '#0284c7'; border: '1px solid #bae6fd';}
+    if(type === 'success') { div.style.background = '#ecfdf5'; div.style.color = '#059669'; border: '1px solid #a7f3d0';}
+    if(type === 'error') { div.style.background = '#fef2f2'; div.style.color = '#dc2626'; border: '1px solid #fecaca';}
 }
 
 document.getElementById('add-product-form').addEventListener('submit', async function(e) {
     e.preventDefault();
-    if (!CONFIG.IMGBB_API_KEY) return alert("الرجاء وضع مفتاح ImgBB API في ملف script.js للإدارة أولاً!");
 
     const name = document.getElementById('p-name').value;
     const price = document.getElementById('p-price').value;
@@ -110,15 +100,14 @@ document.getElementById('add-product-form').addEventListener('submit', async fun
     try {
         submitBtn.disabled = true;
         
-        // 1. ضغط الصورة
         setStatus('<i class="fas fa-spinner fa-spin"></i> جاري ضغط الصورة...', 'info');
         const compressedBlob = await compressImage(imageFile);
         
-        // 2. الرفع إلى ImgBB
-        setStatus('<i class="fas fa-spinner fa-spin"></i> جاري الرفع إلى ImgBB...', 'info');
+        setStatus('<i class="fas fa-spinner fa-spin"></i> جاري الرفع باستخدام طريقة POST لـ ImgBB...', 'info');
         const formData = new FormData();
-        formData.append('image', compressedBlob, 'product.jpg'); // يجب تحديد اسم هنا
+        formData.append('image', compressedBlob, 'mansaf_dish.jpg'); 
         
+        // إرسال الطلب بطريقة POST السريعة والمستقرة
         const response = await fetch(`https://api.imgbb.com/1/upload?key=${CONFIG.IMGBB_API_KEY}`, {
             method: 'POST', body: formData
         });
@@ -129,8 +118,7 @@ document.getElementById('add-product-form').addEventListener('submit', async fun
         const imageUrl = data.data.url;
         const deleteUrl = data.data.delete_url;
 
-        // 3. الحفظ في Firestore (روابط فقط بدون Base64)
-        setStatus('<i class="fas fa-spinner fa-spin"></i> جاري الحفظ في قاعدة البيانات...', 'info');
+        setStatus('<i class="fas fa-spinner fa-spin"></i> جاري الحفظ في القائمة...', 'info');
         await addDoc(collection(db, CONFIG.COLLECTION_NAME), {
             name: name,
             price: Number(price),
@@ -139,7 +127,7 @@ document.getElementById('add-product-form').addEventListener('submit', async fun
             createdAt: serverTimestamp()
         });
 
-        setStatus('<i class="fas fa-check-circle"></i> تم إضافة المنتج بنجاح!', 'success');
+        setStatus('<i class="fas fa-check-circle"></i> تم إضافة الصنف للقائمة بنجاح!', 'success');
         this.reset();
         document.getElementById('preview-container').style.display = 'none';
 
@@ -152,16 +140,13 @@ document.getElementById('add-product-form').addEventListener('submit', async fun
     }
 });
 
-// ==========================================
-// 📋 جلب المنتجات والطلبات والحذف المزدوج
-// ==========================================
 function loadProducts() {
     const q = query(collection(db, CONFIG.COLLECTION_NAME), orderBy("createdAt", "desc"));
     onSnapshot(q, (snapshot) => {
         const tbody = document.getElementById('products-list');
         tbody.innerHTML = '';
         if(snapshot.empty) {
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">لا توجد منتجات حالياً</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#0284c7; font-weight:bold;">لا توجد أصناف في القائمة حالياً</td></tr>';
             return;
         }
 
@@ -171,42 +156,34 @@ function loadProducts() {
             tbody.innerHTML += `
                 <tr>
                     <td><img src="${p.imageUrl}" class="prod-img-tbl"></td>
-                    <td style="font-weight:bold;">${p.name}</td>
-                    <td style="color:var(--primary); font-weight:800;">${p.price}$</td>
-                    <td>${date}</td>
-                    <td><button class="btn-danger" id="del-btn-${docSnap.id}" onclick="window.deleteProduct('${docSnap.id}', '${p.deleteUrl || ''}')"><i class="fas fa-trash"></i> حذف</button></td>
+                    <td style="font-weight:900;">${p.name}</td>
+                    <td style="color:#f59e0b; font-weight:900; font-size:18px;">${p.price}$</td>
+                    <td style="font-weight:bold; color:#64748b;">${date}</td>
+                    <td><button class="btn-danger" id="del-btn-${docSnap.id}" onclick="window.deleteProduct('${docSnap.id}', '${p.deleteUrl || ''}')"><i class="fas fa-trash"></i> إزالة</button></td>
                 </tr>
             `;
         });
     });
 }
 
-// دالة الحذف المزدوج (ImgBB ثم Firestore)
 window.deleteProduct = async function(id, deleteUrl) {
-    if(!confirm("هل أنت متأكد من الحذف النهائي للمنتج من المتجر والسيرفر؟")) return;
+    if(!confirm("هل أنت متأكد من إزالة الصنف نهائياً من القائمة؟")) return;
     const btn = document.getElementById(`del-btn-${id}`);
     
     try {
-        btn.innerHTML = "جاري...";
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
         btn.disabled = true;
 
-        // 1. محاولة حذف الصورة من ImgBB
         if(deleteUrl) {
-            try {
-                // استخدام no-cors لتجنب إيقاف الكود بسبب قيود السيرفر الخارجي (CORS)
-                await fetch(deleteUrl, { mode: 'no-cors' });
-            } catch(e) {
-                console.warn("تنبيه: تم تجاوز سياسات المتصفح أثناء طلب الحذف.", e);
-            }
+            try { await fetch(deleteUrl, { mode: 'no-cors' }); } 
+            catch(e) { console.warn("تنبيه الحذف الخارجي", e); }
         }
 
-        // 2. الحذف من قاعدة بيانات Firebase
         await deleteDoc(doc(db, CONFIG.COLLECTION_NAME, id));
-        alert("تم الحذف بنجاح.");
     } catch (error) {
         alert("حدث خطأ أثناء الحذف!");
         console.error(error);
-        btn.innerHTML = '<i class="fas fa-trash"></i> حذف';
+        btn.innerHTML = '<i class="fas fa-trash"></i> إزالة';
         btn.disabled = false;
     }
 };
@@ -217,31 +194,30 @@ function loadOrders() {
         const tbody = document.getElementById('orders-list');
         tbody.innerHTML = '';
         if(snapshot.empty) {
-            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">لا توجد طلبات واردة حتى الآن.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#0284c7; font-weight:bold;">لا توجد طلبات واردة حتى الآن.</td></tr>';
             return;
         }
 
         snapshot.forEach((doc) => {
             const o = doc.data();
             const date = o.createdAt ? o.createdAt.toDate().toLocaleString('ar-EG') : 'الآن';
-            const itemsList = o.items.map(i => `<span style="background:#f1f5f9; padding:4px 8px; border-radius:6px; margin:2px; display:inline-block;">${i.name}</span>`).join('');
+            const itemsList = o.items.map(i => `<span style="background:#e0f2fe; color:#0284c7; padding:4px 8px; border-radius:6px; margin:2px; display:inline-block; font-weight:bold; border:1px solid #bae6fd;">${i.name}</span>`).join('');
 
             tbody.innerHTML += `
                 <tr>
                     <td><span class="badge">${o.orderNumber}</span></td>
-                    <td style="font-weight:bold;">${o.customerName}</td>
-                    <td dir="ltr" style="text-align:right;">${o.customerPhone}</td>
-                    <td>${o.customerAddress}</td>
-                    <td style="font-size:13px; color:#64748b; max-width:250px;">${itemsList}</td>
-                    <td style="font-weight:bold; color:#10b981; font-size:16px;">${o.totalPrice}$</td>
-                    <td style="font-size:13px;">${date}</td>
+                    <td style="font-weight:900; color:#0f172a;">${o.customerName}</td>
+                    <td dir="ltr" style="text-align:right; font-weight:bold; color:#334155;">${o.customerPhone}</td>
+                    <td style="font-weight:bold; color:#475569;">${o.customerAddress}</td>
+                    <td style="font-size:13px; max-width:250px;">${itemsList}</td>
+                    <td style="font-weight:900; color:#10b981; font-size:16px;">${o.totalPrice}$</td>
+                    <td style="font-size:13px; font-weight:bold; color:#64748b;">${date}</td>
                 </tr>
             `;
         });
     });
 }
 
-// تشغيل جلب البيانات فوراً
 window.onload = () => {
     loadProducts();
     loadOrders();
