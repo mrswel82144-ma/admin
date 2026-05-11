@@ -3,79 +3,112 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>إدارة مناسف</title>
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;600;800;900&display=swap" rel="stylesheet">
+    <title>لوحة الإدارة - مناسف</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <div class="dashboard">
-        <aside class="sidebar">
-            <div class="logo">
-                <img src="https://c.top4top.io/p_37838ly851.png" alt="لوجو" class="admin-logo">
-                <div class="text-3d" style="font-size: 26px;">مناسف</div>
+    <div class="admin-layout">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>إدارة مناسف</h2>
+                <button class="close-sidebar" onclick="toggleSidebar()"><i class="fas fa-times"></i></button>
             </div>
-            <nav class="menu">
-                <a href="#" class="menu-item active" onclick="window.switchTab('products', this)"><i class="fas fa-utensils"></i> إدارة القائمة</a>
-                <a href="#" class="menu-item" onclick="window.switchTab('orders', this)"><i class="fas fa-clipboard-list"></i> طلبات الزبائن</a>
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-link active" onclick="switchAdminTab('dashboard', this)"><i class="fas fa-chart-line"></i> الرئيسية</a>
+                <a href="#" class="nav-link" onclick="switchAdminTab('products', this)"><i class="fas fa-box"></i> المنتجات</a>
+                <a href="#" class="nav-link" onclick="switchAdminTab('orders', this)"><i class="fas fa-shopping-bag"></i> الطلبات</a>
+                <a href="#" class="nav-link"><i class="fas fa-cog"></i> الإعدادات</a>
             </nav>
         </aside>
 
         <main class="main-content">
-            <div id="products-tab" class="tab-content active">
-                <div class="card">
-                    <h3><i class="fas fa-plus-circle"></i> إضافة صنف جديد (منسف/وجبة)</h3>
-                    <form id="add-product-form" class="admin-form">
-                        <div class="form-group">
-                            <label>اسم الوجبة</label>
-                            <input type="text" id="p-name" required placeholder="مثال: منسف لحم بلدي">
-                        </div>
-                        <div class="form-group">
-                            <label>سعر الوجبة ($)</label>
-                            <input type="number" step="0.01" id="p-price" required placeholder="أدخل السعر">
-                        </div>
-                        <div class="form-group">
-                            <label>صورة الوجبة (يتم ضغطها تلقائياً)</label>
-                            <input type="file" id="p-image" accept="image/*" required class="file-input">
-                            <div class="preview-container" id="preview-container" style="display: none;">
-                                <img id="image-preview" src="" alt="معاينة">
-                            </div>
-                        </div>
-                        <div id="upload-status" class="status-msg"></div>
-                        <button type="submit" id="submit-btn" class="btn-primary">حفظ في القائمة <i class="fas fa-cloud-upload-alt"></i></button>
-                    </form>
-                </div>
+            <header class="top-header">
+                <button class="menu-btn" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+                <div class="admin-profile">مدير النظام <i class="fas fa-user-circle"></i></div>
+            </header>
 
-                <div class="card mt-20">
-                    <h3><i class="fas fa-list"></i> القائمة الحالية</h3>
-                    <div class="table-responsive">
+            <div class="content-wrapper">
+                <section id="dashboard-tab" class="admin-tab active">
+                    <h2 class="page-title">نظرة عامة</h2>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background:#dcfce7; color:#16a34a;"><i class="fas fa-dollar-sign"></i></div>
+                            <div class="stat-info"><h3>إجمالي المبيعات</h3><p>450 د.أ</p></div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background:#e0f2fe; color:#0284c7;"><i class="fas fa-shopping-basket"></i></div>
+                            <div class="stat-info"><h3>الطلبات الجديدة</h3><p>12 طلب</p></div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background:#fef9c3; color:#ca8a04;"><i class="fas fa-box-open"></i></div>
+                            <div class="stat-info"><h3>المنتجات النشطة</h3><p>8 أصناف</p></div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="products-tab" class="admin-tab">
+                    <div class="page-header">
+                        <h2 class="page-title">إدارة المنتجات</h2>
+                        <button class="btn-primary" onclick="openModal()"><i class="fas fa-plus"></i> إضافة منتج جديد</button>
+                    </div>
+                    <div class="table-container">
                         <table class="data-table">
-                            <thead><tr><th>الصورة</th><th>الاسم</th><th>السعر</th><th>التاريخ</th><th>إجراء</th></tr></thead>
-                            <tbody id="products-list">
-                                <tr><td colspan="5" style="text-align:center;">جاري التحميل...</td></tr>
-                            </tbody>
+                            <thead>
+                                <tr><th>الصورة</th><th>الاسم</th><th>السعر</th><th>التصنيف</th><th>إجراء</th></tr>
+                            </thead>
+                            <tbody id="admin-products-list">
+                                </tbody>
                         </table>
                     </div>
-                </div>
-            </div>
+                </section>
 
-            <div id="orders-tab" class="tab-content">
-                <div class="card">
-                    <h3><i class="fas fa-bell"></i> أحدث طلبات التوصيل</h3>
-                    <div class="table-responsive">
+                <section id="orders-tab" class="admin-tab">
+                    <h2 class="page-title">أحدث الطلبات</h2>
+                    <div class="table-container">
                         <table class="data-table">
-                            <thead><tr><th>رقم الطلب</th><th>الزبون</th><th>الهاتف</th><th>العنوان</th><th>الأصناف المطلوبة</th><th>الإجمالي</th><th>التاريخ</th></tr></thead>
-                            <tbody id="orders-list">
-                                <tr><td colspan="7" style="text-align:center;">جاري التحميل...</td></tr>
-                            </tbody>
+                            <thead>
+                                <tr><th>رقم الطلب</th><th>الزبون</th><th>الإجمالي</th><th>التفاصيل</th><th>الحالة</th></tr>
+                            </thead>
+                            <tbody id="admin-orders-list">
+                                </tbody>
                         </table>
                     </div>
-                </div>
+                </section>
             </div>
         </main>
     </div>
 
-    <script type="module" src="script.js"></script>
+    <div class="modal-overlay" id="product-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>إضافة منتج جديد</h3>
+                <button class="close-modal" onclick="closeModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <form class="modal-form" onsubmit="event.preventDefault(); alert('تم حفظ المنتج (وهمي)'); closeModal();">
+                <div class="form-group">
+                    <label>اسم المنتج</label>
+                    <input type="text" required>
+                </div>
+                <div class="form-group">
+                    <label>السعر</label>
+                    <input type="number" required>
+                </div>
+                <div class="form-group">
+                    <label>التصنيف</label>
+                    <select>
+                        <option>مناسف لحم</option>
+                        <option>مناسف دجاج</option>
+                        <option>إضافات</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-primary w-100">حفظ المنتج</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
 </body>
 </html>
