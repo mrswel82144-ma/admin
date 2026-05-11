@@ -1,32 +1,43 @@
-// مفتاح رفع الصور المجاني الذي استخدمته سابقاً
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
+import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+
+// إعدادات فايربيس الخاصة بك
+const firebaseConfig = {
+    apiKey: "AIzaSyD5AhcV4dky3MdBizPdrCkNHMb9_NF9Yko",
+    authDomain: "lkhf-5a292.firebaseapp.com",
+    projectId: "lkhf-5a292",
+    storageBucket: "lkhf-5a292.firebasestorage.app",
+    messagingSenderId: "722146610247",
+    appId: "1:722146610247:web:b8583a37f0776acd4d3562",
+    measurementId: "G-LWZKCMLESD"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 const IMGBB_API_KEY = "872edef7066f0226f009e515daa0f951";
 
-// التبديل بين التبويبات السفلية
+// متغيرات لتخزين البيانات محلياً للفلترة
+let ordersList = [];
+
+// ================== واجهة المستخدم والمودال ==================
 window.switchTab = function(tabId, btn) {
     document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
     document.querySelectorAll('.bottom-nav button').forEach(b => b.classList.remove('active'));
     document.getElementById(tabId + '-tab').classList.add('active');
     btn.classList.add('active');
-    renderData();
 };
 
-// النوافذ المنبثقة
 window.showForm = function(formId) {
     document.getElementById('modal-overlay').style.display = 'flex';
     document.querySelectorAll('.modal-card').forEach(f => f.style.display = 'none');
     document.getElementById(formId).style.display = 'flex';
-    
-    // تعبئة الأقسام داخل فورم المنتجات
-    if(formId === 'product-form') {
-        let cats = JSON.parse(localStorage.getItem('categories')) || [];
-        let select = document.getElementById('p-category');
-        select.innerHTML = '<option value="">اختر القسم</option>';
-        cats.forEach(c => select.innerHTML += `<option value="${c.name}">${c.name}</option>`);
-    }
 };
-window.closeForm = function() { document.getElementById('modal-overlay').style.display = 'none'; };
 
-// دالة رفع الصور
+window.closeForm = function() { 
+    document.getElementById('modal-overlay').style.display = 'none'; 
+};
+
+// ================== رفع الصور ==================
 async function uploadImage(file) {
     const formData = new FormData();
     formData.append("image", file);
@@ -40,37 +51,28 @@ async function uploadImage(file) {
     }
 }
 
-// 1. إضافة وحذف المنتجات
-document.getElementById('product-form').onsubmit = async function(e) {
-    e.preventDefault();
-    let btn = this.querySelector('button[type="submit"]');
-    btn.innerText = "جاري الرفع..."; btn.disabled = true;
+// ================== إدارة الأقسام (تُجلب لنموذج المنتجات أيضاً) ==================
+onSnapshot(collection(db, 'categories'), (snap) => {
+    let catContainer = document.getElementById('category-list');
+    let select = document.getElementById('p-category');
     
-    let imgUrl = await uploadImage(document.getElementById('p-img').files[0]);
-    if(imgUrl) {
-        let prods = JSON.parse(localStorage.getItem('products')) || [];
-        prods.push({
-            id: Date.now(),
-            name: document.getElementById('p-name').value,
-            category: document.getElementById('p-category').value,
-            desc: document.getElementById('p-desc').value,
-            price: document.getElementById('p-price').value,
-            image: imgUrl
-        });
-        localStorage.setItem('products', JSON.stringify(prods));
-        closeForm(); this.reset(); renderData();
-    }
-    btn.innerText = "حفظ المنتج"; btn.disabled = false;
-};
+    catContainer.innerHTML = '';
+    select.innerHTML = '<option value="">اختر القسم</option>';
+    
+    snap.forEach(docSnap => {
+        let c = { id: docSnap.id, ...docSnap.data() };
+        // عرض القسم في لوحة الأقسام
+        catContainer.innerHTML += `
+            <div class="card grid-item">
+                <img src="${c.image}">
+                <h4>${c.name}</h4>
+                <button class="btn-del" onclick="deleteCategory('${c.id}')"><i class="fas fa-trash"></i></button>
+            </div>`;
+        // إضافته للقائمة المنسدلة في إضافة المنتج
+        select.innerHTML += `<option value="${c.name}">${c.name}</option>`;
+    });
+});
 
-window.deleteProduct = function(id) {
-    let prods = JSON.parse(localStorage.getItem('products')) || [];
-    prods = prods.filter(p => p.id !== id);
-    localStorage.setItem('products', JSON.stringify(prods));
-    renderData();
-};
-
-// 2. إضافة وحذف الأقسام
 document.getElementById('category-form').onsubmit = async function(e) {
     e.preventDefault();
     let btn = this.querySelector('button[type="submit"]');
@@ -78,22 +80,71 @@ document.getElementById('category-form').onsubmit = async function(e) {
     
     let imgUrl = await uploadImage(document.getElementById('c-img').files[0]);
     if(imgUrl) {
-        let cats = JSON.parse(localStorage.getItem('categories')) || [];
-        cats.push({ id: Date.now(), name: document.getElementById('c-name').value, image: imgUrl });
-        localStorage.setItem('categories', JSON.stringify(cats));
-        closeForm(); this.reset(); renderData();
+        await addDoc(collection(db, 'categories'), {
+            name: document.getElementById('c-name').value,
+            image: imgUrl
+        });
+        closeForm(); this.reset();
     }
     btn.innerText = "حفظ القسم"; btn.disabled = false;
 };
 
-window.deleteCategory = function(id) {
-    let cats = JSON.parse(localStorage.getItem('categories')) || [];
-    cats = cats.filter(c => c.id !== id);
-    localStorage.setItem('categories', JSON.stringify(cats));
-    renderData();
+window.deleteCategory = async function(id) {
+    if(confirm("هل أنت متأكد من حذف القسم؟")) await deleteDoc(doc(db, 'categories', id));
 };
 
-// 3. إضافة وحذف البنرات
+// ================== إدارة المنتجات ==================
+onSnapshot(collection(db, 'products'), (snap) => {
+    let prodContainer = document.getElementById('product-list');
+    prodContainer.innerHTML = '';
+    snap.forEach(docSnap => {
+        let p = { id: docSnap.id, ...docSnap.data() };
+        prodContainer.innerHTML += `
+            <div class="card">
+                <img src="${p.image}">
+                <div class="item-info"><h4>${p.name}</h4><p>${Number(p.price).toLocaleString()} د.ع - ${p.category}</p></div>
+                <button class="btn-del" onclick="deleteProduct('${p.id}')"><i class="fas fa-trash"></i></button>
+            </div>`;
+    });
+});
+
+document.getElementById('product-form').onsubmit = async function(e) {
+    e.preventDefault();
+    let btn = this.querySelector('button[type="submit"]');
+    btn.innerText = "جاري الرفع..."; btn.disabled = true;
+    
+    let imgUrl = await uploadImage(document.getElementById('p-img').files[0]);
+    if(imgUrl) {
+        await addDoc(collection(db, 'products'), {
+            name: document.getElementById('p-name').value,
+            category: document.getElementById('p-category').value,
+            desc: document.getElementById('p-desc').value,
+            price: Number(document.getElementById('p-price').value),
+            image: imgUrl
+        });
+        closeForm(); this.reset();
+    }
+    btn.innerText = "حفظ المنتج"; btn.disabled = false;
+};
+
+window.deleteProduct = async function(id) {
+    if(confirm("هل أنت متأكد من حذف المنتج؟")) await deleteDoc(doc(db, 'products', id));
+};
+
+// ================== إدارة البنرات ==================
+onSnapshot(collection(db, 'banners'), (snap) => {
+    let banContainer = document.getElementById('banner-list');
+    banContainer.innerHTML = '';
+    snap.forEach(docSnap => {
+        let b = { id: docSnap.id, ...docSnap.data() };
+        banContainer.innerHTML += `
+            <div class="card banner-item">
+                <img src="${b.image}">
+                <button class="btn-del" onclick="deleteBanner('${b.id}')"><i class="fas fa-trash"></i> إزالة</button>
+            </div>`;
+    });
+});
+
 document.getElementById('banner-form').onsubmit = async function(e) {
     e.preventDefault();
     let btn = this.querySelector('button[type="submit"]');
@@ -101,31 +152,35 @@ document.getElementById('banner-form').onsubmit = async function(e) {
     
     let imgUrl = await uploadImage(document.getElementById('b-img').files[0]);
     if(imgUrl) {
-        let banners = JSON.parse(localStorage.getItem('banners')) || [];
-        banners.push({ id: Date.now(), image: imgUrl });
-        localStorage.setItem('banners', JSON.stringify(banners));
-        closeForm(); this.reset(); renderData();
+        await addDoc(collection(db, 'banners'), { image: imgUrl });
+        closeForm(); this.reset();
     }
     btn.innerText = "رفع الإعلان"; btn.disabled = false;
 };
 
-window.deleteBanner = function(id) {
-    let banners = JSON.parse(localStorage.getItem('banners')) || [];
-    banners = banners.filter(b => b.id !== id);
-    localStorage.setItem('banners', JSON.stringify(banners));
-    renderData();
+window.deleteBanner = async function(id) {
+    if(confirm("هل أنت متأكد من إزالة البنر؟")) await deleteDoc(doc(db, 'banners', id));
 };
 
-// 4. الطلبات (المعلقة والمنتهية)
+// ================== إدارة الطلبات ==================
+onSnapshot(collection(db, 'orders'), (snap) => {
+    ordersList = [];
+    snap.forEach(docSnap => {
+        ordersList.push({ id: docSnap.id, ...docSnap.data() });
+    });
+    // تحديث العرض بناءً على التبويب النشط
+    let activeStatus = document.getElementById('btn-pending').classList.contains('active') ? 'pending' : 'completed';
+    filterOrders(activeStatus);
+});
+
 window.filterOrders = function(status) {
     document.querySelectorAll('.order-nav-btn').forEach(b => b.classList.remove('active'));
     document.getElementById(status === 'pending' ? 'btn-pending' : 'btn-completed').classList.add('active');
     
-    let orders = JSON.parse(localStorage.getItem('orders')) || [];
-    let filtered = orders.filter(o => o.status === status);
     let container = document.getElementById('orders-list');
     container.innerHTML = '';
     
+    let filtered = ordersList.filter(o => o.status === status);
     filtered.forEach(o => {
         let itemsHtml = o.items.map(i => `${i.qty}x ${i.name}`).join(' ، ');
         container.innerHTML += `
@@ -136,80 +191,29 @@ window.filterOrders = function(status) {
                 </div>
                 <p><strong>العنوان:</strong> ${o.address}</p>
                 <p><strong>الطلب:</strong> ${itemsHtml}</p>
-                ${status === 'pending' ? `<button class="btn-approve mt-15" onclick="completeOrder(${o.id})"><i class="fas fa-check"></i> نقل للمنتهية</button>` : ''}
-                <button class="btn-del mt-15" onclick="deleteOrder(${o.id})"><i class="fas fa-trash"></i> حذف</button>
+                ${status === 'pending' ? `<button class="btn-approve mt-15" onclick="completeOrder('${o.id}')"><i class="fas fa-check"></i> نقل للمنتهية</button>` : ''}
+                <button class="btn-del mt-15" onclick="deleteOrder('${o.id}')"><i class="fas fa-trash"></i> حذف</button>
             </div>
         `;
     });
 };
 
-window.completeOrder = function(id) {
-    let orders = JSON.parse(localStorage.getItem('orders')) || [];
-    let order = orders.find(o => o.id === id);
-    if(order) order.status = 'completed';
-    localStorage.setItem('orders', JSON.stringify(orders));
-    filterOrders('pending');
+window.completeOrder = async function(id) {
+    await updateDoc(doc(db, 'orders', id), { status: 'completed' });
 };
-window.deleteOrder = function(id) {
-    let orders = JSON.parse(localStorage.getItem('orders')) || [];
-    orders = orders.filter(o => o.id !== id);
-    localStorage.setItem('orders', JSON.stringify(orders));
-    filterOrders(document.getElementById('btn-pending').classList.contains('active') ? 'pending' : 'completed');
+window.deleteOrder = async function(id) {
+    if(confirm("هل أنت متأكد من حذف هذا الطلب نهائياً؟")) await deleteDoc(doc(db, 'orders', id));
 };
 
-// 5. التوصيل
-window.saveDeliveryPrice = function() {
+// ================== سعر التوصيل ==================
+onSnapshot(doc(db, 'settings', 'delivery'), (docSnap) => {
+    if(docSnap.exists()) {
+        document.getElementById('delivery-price-input').value = docSnap.data().price || 0;
+    }
+});
+
+window.saveDeliveryPrice = async function() {
     let val = document.getElementById('delivery-price-input').value;
-    localStorage.setItem('deliveryPrice', val);
-    alert('تم حفظ سعر التوصيل وسينعكس في المتجر.');
+    await setDoc(doc(db, 'settings', 'delivery'), { price: Number(val) });
+    alert('تم حفظ سعر التوصيل بنجاح.');
 };
-
-// دالة جلب وعرض كل البيانات
-function renderData() {
-    // عرض المنتجات
-    let prods = JSON.parse(localStorage.getItem('products')) || [];
-    let prodContainer = document.getElementById('product-list');
-    prodContainer.innerHTML = '';
-    prods.forEach(p => {
-        prodContainer.innerHTML += `
-            <div class="card">
-                <img src="${p.image}">
-                <div class="item-info"><h4>${p.name}</h4><p>${Number(p.price).toLocaleString()} د.ع - ${p.category}</p></div>
-                <button class="btn-del" onclick="deleteProduct(${p.id})"><i class="fas fa-trash"></i></button>
-            </div>`;
-    });
-
-    // عرض الأقسام
-    let cats = JSON.parse(localStorage.getItem('categories')) || [];
-    let catContainer = document.getElementById('category-list');
-    catContainer.innerHTML = '';
-    cats.forEach(c => {
-        catContainer.innerHTML += `
-            <div class="card grid-item">
-                <img src="${c.image}">
-                <h4>${c.name}</h4>
-                <button class="btn-del" onclick="deleteCategory(${c.id})"><i class="fas fa-trash"></i></button>
-            </div>`;
-    });
-
-    // عرض البنرات
-    let banners = JSON.parse(localStorage.getItem('banners')) || [];
-    let banContainer = document.getElementById('banner-list');
-    banContainer.innerHTML = '';
-    banners.forEach(b => {
-        banContainer.innerHTML += `
-            <div class="card banner-item">
-                <img src="${b.image}">
-                <button class="btn-del" onclick="deleteBanner(${b.id})"><i class="fas fa-trash"></i> إزالة</button>
-            </div>`;
-    });
-
-    // جلب التوصيل
-    document.getElementById('delivery-price-input').value = localStorage.getItem('deliveryPrice') || 0;
-    
-    // جلب الطلبات
-    filterOrders(document.getElementById('btn-pending').classList.contains('active') ? 'pending' : 'completed');
-}
-
-// تشغيل عند التحميل
-window.onload = renderData;
