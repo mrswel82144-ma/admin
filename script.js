@@ -182,17 +182,38 @@ window.filterOrders = function(status) {
     
     let filtered = ordersList.filter(o => o.status === status);
     filtered.forEach(o => {
-        let itemsHtml = o.items.map(i => `${i.qty}x ${i.name}`).join(' ، ');
+        // تصميم لعرض صورة المنتج مع الكمية والاسم
+        let itemsHtml = o.items.map(i => `
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px; background:#f8fafc; padding:8px; border-radius:10px; border: 1px solid #e2e8f0;">
+                <img src="${i.image}" style="width:50px; height:50px; object-fit:cover; border-radius:8px;">
+                <span style="font-size:15px; font-weight:bold; color:var(--text);"> <span style="color:var(--primary);">${i.qty}x</span> ${i.name}</span>
+            </div>
+        `).join('');
+        
         container.innerHTML += `
-            <div class="card" style="flex-direction:column; align-items:start;">
-                <div style="display:flex; justify-content:space-between; width:100%;">
-                    <h4>${o.name} <a href="https://wa.me/${o.phone}" target="_blank" style="color:#10b981;"><i class="fab fa-whatsapp"></i> ${o.phone}</a></h4>
-                    <strong style="color:var(--primary);">${Number(o.total).toLocaleString()} د.ع</strong>
+            <div class="card" style="flex-direction:column; align-items:start; padding:20px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; width:100%; margin-bottom:10px;">
+                    <h4 style="margin:0; font-size:18px;">${o.name}</h4>
+                    <strong style="color:var(--primary); font-size:18px;">${Number(o.total).toLocaleString()} د.ع</strong>
                 </div>
-                <p><strong>العنوان:</strong> ${o.address}</p>
-                <p><strong>الطلب:</strong> ${itemsHtml}</p>
-                ${status === 'pending' ? `<button class="btn-approve mt-15" onclick="completeOrder('${o.id}')"><i class="fas fa-check"></i> نقل للمنتهية</button>` : ''}
-                <button class="btn-del mt-15" onclick="deleteOrder('${o.id}')"><i class="fas fa-trash"></i> حذف</button>
+                
+                <div style="margin-bottom:15px;">
+                    <a href="https://wa.me/${o.phone}" target="_blank" style="display:inline-flex; align-items:center; gap:5px; background:#10b981; color:white; padding:8px 15px; border-radius:8px; text-decoration:none; font-weight:bold;">
+                        <i class="fab fa-whatsapp" style="font-size:18px;"></i> مراسلة الزبون (${o.phone})
+                    </a>
+                </div>
+
+                <p style="margin-bottom:10px;"><strong>العنوان:</strong> ${o.address}</p>
+                
+                <div style="width:100%; margin-top:10px;">
+                    <strong style="display:block; margin-bottom:8px; color:#64748b;">تفاصيل الطلب:</strong>
+                    ${itemsHtml}
+                </div>
+                
+                <div style="display:flex; gap:10px; width:100%; margin-top:15px;">
+                    ${status === 'pending' ? `<button class="btn-approve" style="flex:1;" onclick="completeOrder('${o.id}')"><i class="fas fa-check"></i> نقل للمنتهية</button>` : ''}
+                    <button class="btn-del" style="flex:1;" onclick="deleteOrder('${o.id}')"><i class="fas fa-trash"></i> حذف</button>
+                </div>
             </div>
         `;
     });
