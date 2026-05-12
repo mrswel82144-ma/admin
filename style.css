@@ -2,6 +2,10 @@
 * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Tajawal', sans-serif; }
 body { background: var(--bg); color: var(--text); padding-bottom: 90px; }
 
+/* شاشة تسجيل الدخول */
+.login-overlay { position: fixed; inset: 0; background: var(--bg); display: flex; justify-content: center; align-items: center; z-index: 99999; }
+.login-card { background: white; padding: 30px; border-radius: var(--radius); box-shadow: 0 10px 40px rgba(0,0,0,0.1); width: 90%; max-width: 350px; text-align: center; display: flex; flex-direction: column; }
+
 .admin-content { padding: 20px; }
 .tab-content { display: none; }
 .tab-content.active { display: block; animation: slideUp 0.3s; }
